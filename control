@@ -1,0 +1,9 @@
+Package: com.bitswag.tweak
+Name: BitSwag
+Version: 0.3.0
+Architecture: iphoneos-arm
+Description: BitSwag tweak with a classic iOS Settings preference pane.
+Maintainer: BitSwag
+Author: BitSwag
+Section: Tweaks
+Depends: firmware (>= 15.0), mobilesubstrate, preferenceloader
