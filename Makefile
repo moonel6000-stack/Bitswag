@@ -17,6 +17,7 @@ BUNDLE_NAME = BitSwagPrefs
 BitSwagPrefs_FILES = Preferences/BSSRootListController.m
 BitSwagPrefs_FRAMEWORKS = UIKit
 BitSwagPrefs_PRIVATE_FRAMEWORKS = Preferences
+BitSwagPrefs_LDFLAGS += -F$(THEOS)/sdks/iPhoneOS.sdk/System/Library/PrivateFrameworks
 BitSwagPrefs_INSTALL_PATH = /Library/PreferenceBundles
 BitSwagPrefs_RESOURCE_DIRS = Preferences/Resources
 BitSwagPrefs_CFLAGS = -fobjc-arc
