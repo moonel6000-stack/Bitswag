@@ -123,7 +123,7 @@ static int gAttempts;
     if (existing) { [existing removeFromSuperview]; return; }
     BSLogf(@"ouverture du panneau");
 
-    UIView *panel = [[UIView alloc] initWithFrame:CGRectMake(82, 140, 245, 250)];
+    UIView *panel = [[UIView alloc] initWithFrame:CGRectMake(82, 140, 275, 330)];
     panel.tag = 0xB176;
     panel.backgroundColor =
         [UIColor colorWithRed:0.10 green:0.10 blue:0.13 alpha:0.97];
@@ -137,25 +137,56 @@ static int gAttempts;
     title.font = [UIFont boldSystemFontOfSize:21];
     [panel addSubview:title];
 
-    NSArray<NSString *> *items = @[@"Stats — planned", @"Money — planned",
-                                   @"Add Cars — planned"];
-    CGFloat y = 54;
-    for (NSString *item in items) {
-        UILabel *l = [[UILabel alloc] initWithFrame:CGRectMake(16, y, 213, 34)];
-        l.text = item;
-        l.textColor = [UIColor colorWithWhite:0.92 alpha:1];
-        l.font = [UIFont systemFontOfSize:15 weight:UIFontWeightMedium];
-        [panel addSubview:l];
-        y += 42;
-    }
+    UILabel *moneyLabel = [[UILabel alloc] initWithFrame:CGRectMake(16, 50, 235, 22)];
+    moneyLabel.text = @"Money — diagnostic";
+    moneyLabel.textColor = UIColor.whiteColor;
+    moneyLabel.font = [UIFont systemFontOfSize:16 weight:UIFontWeightSemibold];
+    [panel addSubview:moneyLabel];
+
+    UITextField *amount = [[UITextField alloc] initWithFrame:CGRectMake(16, 80, 235, 38)];
+    amount.tag = 0xB178;
+    amount.placeholder = @"Montant cible (ex. 1000000)";
+    amount.keyboardType = UIKeyboardTypeDecimalPad;
+    amount.textColor = UIColor.whiteColor;
+    amount.tintColor = UIColor.whiteColor;
+    amount.backgroundColor = [UIColor colorWithWhite:1 alpha:0.10];
+    amount.layer.cornerRadius = 8;
+    amount.leftView = [[UIView alloc] initWithFrame:CGRectMake(0, 0, 9, 38)];
+    amount.leftViewMode = UITextFieldViewModeAlways;
+    [panel addSubview:amount];
+
+    UIButton *inspect = [UIButton buttonWithType:UIButtonTypeSystem];
+    inspect.frame = CGRectMake(16, 128, 235, 34);
+    inspect.contentHorizontalAlignment = UIControlContentHorizontalAlignmentLeft;
+    [inspect setTitle:@"Inspecter les classes Money" forState:UIControlStateNormal];
+    [inspect addTarget:self action:@selector(moneyInspectTapped:) forControlEvents:UIControlEventTouchUpInside];
+    [panel addSubview:inspect];
+
+    UILabel *status = [[UILabel alloc] initWithFrame:CGRectMake(16, 166, 235, 43)];
+    status.text = @"Application du montant désactivée : instance joueur non identifiée.";
+    status.numberOfLines = 2;
+    status.textColor = [UIColor colorWithWhite:0.78 alpha:1];
+    status.font = [UIFont systemFontOfSize:11];
+    [panel addSubview:status];
+
     UIButton *dump = [UIButton buttonWithType:UIButtonTypeSystem];
-    dump.frame = CGRectMake(16, y, 213, 34);
+    dump.frame = CGRectMake(16, 218, 235, 34);
     dump.contentHorizontalAlignment = UIControlContentHorizontalAlignmentLeft;
     [dump setTitle:@"Dump IL2CPP (diagnostic)" forState:UIControlStateNormal];
     [dump addTarget:self action:@selector(dumpTapped:)
    forControlEvents:UIControlEventTouchUpInside];
     [panel addSubview:dump];
     [host addSubview:panel];
+}
+
++ (void)moneyInspectTapped:(UIButton *)sender {
+    BSLogf(@"Money diagnostic demandé; aucun solde modifié");
+    // Le dump IL2CPP donne les signatures, mais pas l'instance du personnage.
+    // On relance le dump runtime pour relever les classes/méthodes candidates.
+    NSString *path = BSDumpIL2CPP();
+    [sender setTitle:(path ? @"Diagnostic enregistré" : @"Diagnostic indisponible")
+            forState:UIControlStateNormal];
+    if (path) BSLogf(@"Money diagnostic dump=%@", path);
 }
 
 + (void)dumpTapped:(UIButton *)sender {

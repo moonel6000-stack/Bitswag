@@ -1,6 +1,6 @@
 Package: com.bitswag.tweak
 Name: BitSwag
-Version: 0.7.0
+Version: 0.8.0
 Architecture: iphoneos-arm
 Description: BitSwag tweak for BitLife (floating menu + Settings pane).
 Maintainer: BitSwag
