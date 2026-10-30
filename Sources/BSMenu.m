@@ -29,7 +29,7 @@ static NSString * const domain=@"com.moonel6000.bitswag";
  ];
 }
 - (void)viewDidLoad {
- [super viewDidLoad];self.title=@"BitSwag 0.9.0";
+ [super viewDidLoad];self.title=@"BitSwag 0.9.1";
  self.navigationItem.rightBarButtonItem=[[UIBarButtonItem alloc]initWithBarButtonSystemItem:UIBarButtonSystemItemDone target:self action:@selector(close)];
  self.tableView.rowHeight=52;
 }
