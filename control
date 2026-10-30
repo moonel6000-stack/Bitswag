@@ -1,9 +1,9 @@
-Package: com.bitswag.tweak
+Package: com.moonel6000.bitswag
 Name: BitSwag
-Version: 0.8.0
-Architecture: iphoneos-arm
-Description: BitSwag tweak for BitLife (floating menu + Settings pane).
+Version: 0.9.0
+Architecture: iphoneos-arm64
+Description: Offline BitLife IL2CPP gameplay hooks with per-hook toggles
 Maintainer: BitSwag
 Author: BitSwag
 Section: Tweaks
-Depends: firmware (>= 15.0), mobilesubstrate, preferenceloader
+Depends: firmware (>= 15.0)

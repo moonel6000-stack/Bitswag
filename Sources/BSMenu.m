@@ -1,209 +1,51 @@
+
 #import "BSMenu.h"
-#import "BSDump.h"
-
-void BSLogf(NSString *fmt, ...) {
-    va_list args;
-    va_start(args, fmt);
-    NSString *msg = [[NSString alloc] initWithFormat:fmt arguments:args];
-    va_end(args);
-    NSLog(@"[BitSwag] %@", msg);
-    @synchronized ([NSProcessInfo processInfo]) {
-        NSString *path = [NSTemporaryDirectory()
-            stringByAppendingPathComponent:@"bitswag.log"];
-        NSData *line = [[NSString stringWithFormat:@"%@ %@\n",
-            [NSDate date], msg] dataUsingEncoding:NSUTF8StringEncoding];
-        NSFileHandle *fh = [NSFileHandle fileHandleForWritingAtPath:path];
-        if (!fh) {
-            [line writeToFile:path atomically:YES];
-        } else {
-            [fh seekToEndOfFile];
-            [fh writeData:line];
-            [fh closeFile];
-        }
-    }
-}
-
-@interface BSPassthroughWindow : UIWindow
+#import <UIKit/UIKit.h>
+static NSString * const domain=@"com.moonel6000.bitswag";
+@interface BSMenuController : UITableViewController
 @end
-
-@implementation BSPassthroughWindow
-- (UIView *)hitTest:(CGPoint)point withEvent:(UIEvent *)event {
-    UIView *hit = [super hitTest:point withEvent:event];
-    if (hit == self || hit == self.rootViewController.view) return nil;
-    return hit;
+@implementation BSMenuLauncher
++ (instancetype)shared { static BSMenuLauncher *s; static dispatch_once_t once; dispatch_once(&once,^{s=[self new];}); return s; }
+- (void)open {
+    UIWindow *w=nil;
+    for (UIScene *scene in UIApplication.sharedApplication.connectedScenes)
+        if ([scene isKindOfClass:UIWindowScene.class] && scene.activationState==UISceneActivationStateForegroundActive)
+            for (UIWindow *candidate in ((UIWindowScene *)scene).windows)
+                if(candidate.isKeyWindow) {w=candidate;break;}
+    UIViewController *top=w.rootViewController;
+    while(top.presentedViewController) top=top.presentedViewController;
+    if(!top || [top isKindOfClass:UINavigationController.class] && [((UINavigationController*)top).topViewController isKindOfClass:BSMenuController.class])return;
+    UINavigationController *nav=[[UINavigationController alloc]initWithRootViewController:[BSMenuController new]];
+    [top presentViewController:nav animated:YES completion:nil];
 }
 @end
-
-static BSPassthroughWindow *gWindow;
-static int gAttempts;
-
-@implementation BSMenu
-
-+ (void)install {
-    static dispatch_once_t onceToken;
-    dispatch_once(&onceToken, ^{
-        BSLogf(@"install, etat app=%ld",
-               (long)UIApplication.sharedApplication.applicationState);
-        [[NSNotificationCenter defaultCenter]
-            addObserver:self
-               selector:@selector(tryShow)
-                   name:UIApplicationDidBecomeActiveNotification
-                 object:nil];
-        [self tryShow];
-    });
+@implementation BSMenuController
+- (NSArray<NSArray<NSArray<NSString*>*>*>*)groups {
+ return @[
+ @[@[@"Solde bancaire (lecture)",@"money.bank.get"],@[@"Solde bancaire (écriture)",@"money.bank.set"],@[@"Solde effectif",@"money.effective"],@[@"Argent personne (lecture)",@"money.person.get"],@[@"Argent personne (écriture)",@"money.person.set"],@[@"Actifs tiers (écriture)",@"money.assets.set"]],
+ @[@[@"Bonheur (lecture)",@"stats.happiness.get"],@[@"Bonheur (écriture)",@"stats.happiness.set"],@[@"Impact bonheur héros",@"stats.hero.impact"],@[@"Impact bonheur personne",@"stats.person.impact"],@[@"Street smarts",@"stats.street"]],
+ @[@[@"État véhicule (lecture)",@"vehicle.condition.get"],@[@"État véhicule (écriture)",@"vehicle.condition.set"],@[@"Impact état véhicule",@"vehicle.impact"],@[@"Impact état enchères",@"vehicle.auction.impact"]],
+ @[@[@"Valeur estimée objet",@"market.estimated"],@[@"Coût restauration",@"market.refurbish"],@[@"Attitude vendeur",@"market.vendor.attitude"],@[@"Gagner enchère",@"market.winbid"],@[@"Vendeur accepte offre",@"market.acceptbid"]]
+ ];
 }
-
-+ (void)retryLater {
-    if (gWindow || gAttempts >= 20) return;
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 2 * NSEC_PER_SEC),
-                   dispatch_get_main_queue(), ^{
-        [self tryShow];
-    });
+- (void)viewDidLoad {
+ [super viewDidLoad];self.title=@"BitSwag 0.9.0";
+ self.navigationItem.rightBarButtonItem=[[UIBarButtonItem alloc]initWithBarButtonSystemItem:UIBarButtonSystemItemDone target:self action:@selector(close)];
+ self.tableView.rowHeight=52;
 }
-
-+ (void)tryShow {
-    if (gWindow) return;
-    gAttempts++;
-    UIApplication *app = UIApplication.sharedApplication;
-    BSLogf(@"tentative %d, scenes=%lu, etat=%ld", gAttempts,
-           (unsigned long)app.connectedScenes.count,
-           (long)app.applicationState);
-
-    if (app.applicationState != UIApplicationStateActive) {
-        BSLogf(@"app pas encore active, nouvel essai plus tard");
-        [self retryLater];
-        return;
-    }
-
-    UIWindowScene *scene = nil;
-    for (UIScene *s in app.connectedScenes) {
-        if (![s isKindOfClass:[UIWindowScene class]]) continue;
-        if (!scene ||
-            s.activationState == UISceneActivationStateForegroundActive) {
-            scene = (UIWindowScene *)s;
-        }
-    }
-
-    BSPassthroughWindow *w;
-    if (scene) {
-        w = [[BSPassthroughWindow alloc] initWithWindowScene:scene];
-        BSLogf(@"fenetre liee a une scene");
-    } else {
-        w = [[BSPassthroughWindow alloc]
-             initWithFrame:UIScreen.mainScreen.bounds];
-        BSLogf(@"aucune scene -> fenetre sans scene");
-    }
-    w.windowLevel = UIWindowLevelAlert + 100;
-    w.backgroundColor = UIColor.clearColor;
-    UIViewController *vc = [UIViewController new];
-    vc.view.backgroundColor = UIColor.clearColor;
-    w.rootViewController = vc;
-
-    UIButton *button = [UIButton buttonWithType:UIButtonTypeSystem];
-    button.frame = CGRectMake(18, 140, 54, 54);
-    button.layer.cornerRadius = 27;
-    button.backgroundColor =
-        [UIColor colorWithRed:0.13 green:0.13 blue:0.16 alpha:0.94];
-    [button setTitle:@"BS" forState:UIControlStateNormal];
-    [button setTitleColor:UIColor.whiteColor forState:UIControlStateNormal];
-    button.titleLabel.font = [UIFont boldSystemFontOfSize:17];
-    [button addTarget:self action:@selector(toggleMenu:)
-     forControlEvents:UIControlEventTouchUpInside];
-    [vc.view addSubview:button];
-
-    w.hidden = NO;
-    gWindow = w;
-    BSLogf(@"fenetre creee, bouton ajoute, frame=%@",
-           NSStringFromCGRect(w.frame));
+- (void)close {[self dismissViewControllerAnimated:YES completion:nil];}
+- (NSInteger)numberOfSectionsInTableView:(UITableView*)t {return self.groups.count;}
+- (NSString*)tableView:(UITableView*)t titleForHeaderInSection:(NSInteger)s {return @[@"Argent",@"Statistiques",@"Véhicules",@"Marché noir"][s];}
+- (NSInteger)tableView:(UITableView*)t numberOfRowsInSection:(NSInteger)s {return self.groups[s].count;}
+- (UITableViewCell*)tableView:(UITableView*)t cellForRowAtIndexPath:(NSIndexPath*)i {
+ UITableViewCell *cell=[t dequeueReusableCellWithIdentifier:@"toggle"];
+ if(!cell)cell=[[UITableViewCell alloc]initWithStyle:UITableViewCellStyleDefault reuseIdentifier:@"toggle"];
+ NSArray *item=self.groups[i.section][i.row];
+ cell.textLabel.text=item[0];cell.textLabel.font=[UIFont systemFontOfSize:14];
+ UISwitch *sw=[UISwitch new];sw.accessibilityIdentifier=item[1];
+ sw.on=[[[NSUserDefaults alloc]initWithSuiteName:domain]boolForKey:item[1]];
+ [sw addTarget:self action:@selector(change:) forControlEvents:UIControlEventValueChanged];
+ cell.accessoryView=sw;return cell;
 }
-
-+ (void)toggleMenu:(UIButton *)sender {
-    UIView *host = sender.superview;
-    UIView *existing = [host viewWithTag:0xB176];
-    if (existing) { [existing removeFromSuperview]; return; }
-    BSLogf(@"ouverture du panneau");
-
-    UIView *panel = [[UIView alloc] initWithFrame:CGRectMake(82, 140, 275, 330)];
-    panel.tag = 0xB176;
-    panel.backgroundColor =
-        [UIColor colorWithRed:0.10 green:0.10 blue:0.13 alpha:0.97];
-    panel.layer.cornerRadius = 16;
-    panel.layer.borderWidth = 1;
-    panel.layer.borderColor = [UIColor colorWithWhite:1 alpha:0.16].CGColor;
-
-    UILabel *title = [[UILabel alloc] initWithFrame:CGRectMake(16, 12, 210, 28)];
-    title.text = @"BitSwag";
-    title.textColor = UIColor.whiteColor;
-    title.font = [UIFont boldSystemFontOfSize:21];
-    [panel addSubview:title];
-
-    UILabel *moneyLabel = [[UILabel alloc] initWithFrame:CGRectMake(16, 50, 235, 22)];
-    moneyLabel.text = @"Money — diagnostic";
-    moneyLabel.textColor = UIColor.whiteColor;
-    moneyLabel.font = [UIFont systemFontOfSize:16 weight:UIFontWeightSemibold];
-    [panel addSubview:moneyLabel];
-
-    UITextField *amount = [[UITextField alloc] initWithFrame:CGRectMake(16, 80, 235, 38)];
-    amount.tag = 0xB178;
-    amount.placeholder = @"Montant cible (ex. 1000000)";
-    amount.keyboardType = UIKeyboardTypeDecimalPad;
-    amount.textColor = UIColor.whiteColor;
-    amount.tintColor = UIColor.whiteColor;
-    amount.backgroundColor = [UIColor colorWithWhite:1 alpha:0.10];
-    amount.layer.cornerRadius = 8;
-    amount.leftView = [[UIView alloc] initWithFrame:CGRectMake(0, 0, 9, 38)];
-    amount.leftViewMode = UITextFieldViewModeAlways;
-    [panel addSubview:amount];
-
-    UIButton *inspect = [UIButton buttonWithType:UIButtonTypeSystem];
-    inspect.frame = CGRectMake(16, 128, 235, 34);
-    inspect.contentHorizontalAlignment = UIControlContentHorizontalAlignmentLeft;
-    [inspect setTitle:@"Inspecter les classes Money" forState:UIControlStateNormal];
-    [inspect addTarget:self action:@selector(moneyInspectTapped:) forControlEvents:UIControlEventTouchUpInside];
-    [panel addSubview:inspect];
-
-    UILabel *status = [[UILabel alloc] initWithFrame:CGRectMake(16, 166, 235, 43)];
-    status.text = @"Application du montant désactivée : instance joueur non identifiée.";
-    status.numberOfLines = 2;
-    status.textColor = [UIColor colorWithWhite:0.78 alpha:1];
-    status.font = [UIFont systemFontOfSize:11];
-    [panel addSubview:status];
-
-    UIButton *dump = [UIButton buttonWithType:UIButtonTypeSystem];
-    dump.frame = CGRectMake(16, 218, 235, 34);
-    dump.contentHorizontalAlignment = UIControlContentHorizontalAlignmentLeft;
-    [dump setTitle:@"Dump IL2CPP (diagnostic)" forState:UIControlStateNormal];
-    [dump addTarget:self action:@selector(dumpTapped:)
-   forControlEvents:UIControlEventTouchUpInside];
-    [panel addSubview:dump];
-    [host addSubview:panel];
-}
-
-+ (void)moneyInspectTapped:(UIButton *)sender {
-    BSLogf(@"Money diagnostic demandé; aucun solde modifié");
-    // Le dump IL2CPP donne les signatures, mais pas l'instance du personnage.
-    // On relance le dump runtime pour relever les classes/méthodes candidates.
-    NSString *path = BSDumpIL2CPP();
-    [sender setTitle:(path ? @"Diagnostic enregistré" : @"Diagnostic indisponible")
-            forState:UIControlStateNormal];
-    if (path) BSLogf(@"Money diagnostic dump=%@", path);
-}
-
-+ (void)dumpTapped:(UIButton *)sender {
-    BSLogf(@"dump demande");
-    NSString *path = BSDumpIL2CPP();
-    if (!path) {
-        [sender setTitle:@"Dump echoue (voir bitswag.log)"
-                forState:UIControlStateNormal];
-        return;
-    }
-    [sender setTitle:@"Dump OK" forState:UIControlStateNormal];
-    UIActivityViewController *vc = [[UIActivityViewController alloc]
-        initWithActivityItems:@[[NSURL fileURLWithPath:path]]
-        applicationActivities:nil];
-    UIViewController *root = gWindow.rootViewController;
-    vc.popoverPresentationController.sourceView = sender;
-    [root presentViewController:vc animated:YES completion:nil];
-}
-
+- (void)change:(UISwitch*)sw {[[[NSUserDefaults alloc]initWithSuiteName:domain]setBool:sw.isOn forKey:sw.accessibilityIdentifier];}
 @end
