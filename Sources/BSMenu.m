@@ -1,4 +1,5 @@
 #import "BSMenu.h"
+#import "BSDump.h"
 
 void BSLogf(NSString *fmt, ...) {
     va_list args;
@@ -137,7 +138,7 @@ static int gAttempts;
     [panel addSubview:title];
 
     NSArray<NSString *> *items = @[@"Stats — planned", @"Money — planned",
-                                   @"Add Cars — planned", @"Settings"];
+                                   @"Add Cars — planned"];
     CGFloat y = 54;
     for (NSString *item in items) {
         UILabel *l = [[UILabel alloc] initWithFrame:CGRectMake(16, y, 213, 34)];
@@ -147,7 +148,31 @@ static int gAttempts;
         [panel addSubview:l];
         y += 42;
     }
+    UIButton *dump = [UIButton buttonWithType:UIButtonTypeSystem];
+    dump.frame = CGRectMake(16, y, 213, 34);
+    dump.contentHorizontalAlignment = UIControlContentHorizontalAlignmentLeft;
+    [dump setTitle:@"Dump IL2CPP (diagnostic)" forState:UIControlStateNormal];
+    [dump addTarget:self action:@selector(dumpTapped:)
+   forControlEvents:UIControlEventTouchUpInside];
+    [panel addSubview:dump];
     [host addSubview:panel];
+}
+
++ (void)dumpTapped:(UIButton *)sender {
+    BSLogf(@"dump demande");
+    NSString *path = BSDumpIL2CPP();
+    if (!path) {
+        [sender setTitle:@"Dump echoue (voir bitswag.log)"
+                forState:UIControlStateNormal];
+        return;
+    }
+    [sender setTitle:@"Dump OK" forState:UIControlStateNormal];
+    UIActivityViewController *vc = [[UIActivityViewController alloc]
+        initWithActivityItems:@[[NSURL fileURLWithPath:path]]
+        applicationActivities:nil];
+    UIViewController *root = gWindow.rootViewController;
+    vc.popoverPresentationController.sourceView = sender;
+    [root presentViewController:vc animated:YES completion:nil];
 }
 
 @end
