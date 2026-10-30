@@ -6,8 +6,9 @@
 	<dict>
 		<key>Bundles</key>
 		<array>
+			<string>com.wtfapps.apollo16</string>
 			<string>com.candywriter.bitlife</string>
 		</array>
 	</dict>
 </dict>
-</plist>
+</plist>ist>
