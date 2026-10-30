@@ -6,7 +6,7 @@ INSTALL_TARGET_PROCESSES := BitLife
 include $(THEOS)/makefiles/common.mk
 
 TWEAK_NAME := BitSwag
-BitSwag_FILES := Tweak.x Sources/BSMenu.m
+BitSwag_FILES := Tweak.x Sources/BSMenu.m Sources/BSDump.m
 BitSwag_CFLAGS := -fobjc-arc
 BitSwag_FRAMEWORKS := UIKit Foundation
 
