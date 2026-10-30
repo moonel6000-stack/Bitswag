@@ -1,14 +1,14 @@
-# BitSwag 0.9.0 — prototype Theos rootless
+# BitSwag 0.9.2 — source Theos rootless
 
-Projet source, **non compilé et non testé**. Comprend `Makefile`, `control`, filtre d'injection, `Tweak.x`, menu UIKit et workflow CI.
+Correction du workflow CI : le runner est désormais Ubuntu 24.04 et les dépendances Linux sont installées avec `apt-get` (plus aucune commande `brew`).
 
-## Installation des dépendances
-Theos rootless + SDK iOS, Dobby compatible avec arm64e/PAC : `dobby.h` dans `$(THEOS)/vendor/include` et `libdobby` dans `$(THEOS)/vendor/lib`.
+## Dépendances
+Le projet source continue de lier Dobby. Le workflow vérifie donc la présence de `dobby.h` et d'une `libdobby.a` compilée pour iOS arm64/arm64e dans `$THEOS/vendor`. Cette dépendance n'est pas téléchargée automatiquement et doit être fournie par le mainteneur.
 
-## Construction
-`make clean package THEOS_PACKAGE_SCHEME=rootless`
+Le workflow télécharge aussi le dépôt officiel Theos SDKs et installe le SDK iPhoneOS disponible.
 
-## Sécurité
-Vérifie `com.wtfapps.apollo16` et `CFBundleShortVersionString == 3.25.3` avant de poser les hooks. Les VA sont appliquées à la base du Mach-O UnityFramework trouvée au runtime. La version ne vérifie **pas** l'empreinte SHA du Mach-O. Tous les toggles sont OFF par défaut. Le hook `VehicleValue` est désactivé (type de retour float). Les méthodes sans signatures suffisamment certaines ne sont pas installées. Il faut vérifier les signatures et les VA avant un test réel. Aucune méthode d'achat intégré n'est ciblée.
+## Lancer
+GitHub → Actions → Build BitSwag → Run workflow.
 
-La présence de `ARCHS=arm64e` ne garantit pas à elle seule la sûreté PAC ; la bibliothèque Dobby liée doit être validée sur l'appareil cible.
+## Important
+Archive source uniquement. Aucun `.deb` n'a été compilé ni testé ici. Le contrôle de version et les offsets restent expérimentaux. L'architecture arm64e ne garantit pas à elle seule la sûreté PAC. Aucun hook IAP n'est ajouté.
