@@ -1,8 +1,0 @@
-{
-  "schemaVersion": 1,
-  "note": "Design catalogue only; this does not add cars to BitLife until in-game integration is implemented and tested.",
-  "cars": [
-    {"brand":"Mercedes-Benz","model":"190 E 2.3-16 Cosworth","year":1986,"price":35000,"visualKey":"","enabled":false},
-    {"brand":"Mercedes-Benz","model":"190 E 2.5-16 Evolution II","year":1990,"price":250000,"visualKey":"","enabled":false}
-  ]
-}
