@@ -1,14 +1,7 @@
-# BitSwag 0.9.2 — source Theos rootless
+# BitSwag 0.9.4 — Theos rootless source
 
-Correction du workflow CI : le runner est désormais Ubuntu 24.04 et les dépendances Linux sont installées avec `apt-get` (plus aucune commande `brew`).
+Le workflow ne demande plus `ldid` à APT. Ubuntu 24.04 ne fournit pas ce paquet dans les dépôts utilisés. Il installe ldid depuis Procursus via l'action GitHub épinglée au commit `d5ab465f3a66a4d60a59882b935eb30e18e8d043` (release `v2.1.5-procursus7`).
 
-## Dépendances
-Le projet source continue de lier Dobby. Le workflow vérifie donc la présence de `dobby.h` et d'une `libdobby.a` compilée pour iOS arm64/arm64e dans `$THEOS/vendor`. Cette dépendance n'est pas téléchargée automatiquement et doit être fournie par le mainteneur.
+Dobby reste une dépendance externe obligatoire : fournir une build iOS arm64/arm64e dans `$THEOS/vendor/include/dobby.h` et `$THEOS/vendor/lib/libdobby.a`.
 
-Le workflow télécharge aussi le dépôt officiel Theos SDKs et installe le SDK iPhoneOS disponible.
-
-## Lancer
-GitHub → Actions → Build BitSwag → Run workflow.
-
-## Important
-Archive source uniquement. Aucun `.deb` n'a été compilé ni testé ici. Le contrôle de version et les offsets restent expérimentaux. L'architecture arm64e ne garantit pas à elle seule la sûreté PAC. Aucun hook IAP n'est ajouté.
+Archive source uniquement : aucun `.deb` n'a été compilé ici. Les hooks, signatures IL2CPP et la compatibilité PAC arm64e restent à valider.

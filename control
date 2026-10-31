@@ -1,6 +1,6 @@
 Package: com.moonel6000.bitswag
 Name: BitSwag
-Version: 0.9.1
+Version: 0.9.4
 Architecture: iphoneos-arm64
 Description: Offline BitLife IL2CPP gameplay hooks with per-hook toggles
 Maintainer: BitSwag
