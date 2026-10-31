@@ -2,25 +2,30 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-  <key>items</key>
-  <array>
-    <dict>
-      <key>cell</key><string>PSGroupCell</string>
-      <key>label</key><string>BitSwag</string>
-      <key>footerText</key><string>Changes to the master switch apply when BitLife is fully closed and reopened.</string>
-    </dict>
-    <dict>
-      <key>cell</key><string>PSSwitchCell</string>
-      <key>label</key><string>Enable BitSwag</string>
-      <key>key</key><string>Enabled</string>
-      <key>default</key><true/>
-      <key>defaults</key><string>com.bitswag.tweak</string>
-      <key>PostNotification</key><string>com.bitswag.tweak/preferencesChanged</string>
-    </dict>
-    <dict>
-      <key>cell</key><string>PSGroupCell</string>
-      <key>label</key><string>Version 0.3.0</string>
-    </dict>
-  </array>
+	<key>title</key>
+	<string>BitSwag</string>
+	<key>items</key>
+	<array>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>General</string>
+			<key>footerText</key>
+			<string>BitSwag for BitLife. Features are planned, not implemented yet.</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>label</key>
+			<string>Enabled</string>
+			<key>key</key>
+			<string>Enabled</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.bitswag.tweak</string>
+		</dict>
+	</array>
 </dict>
 </plist>
