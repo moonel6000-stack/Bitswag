@@ -1,75 +1,128 @@
 name: Build BitSwag
+
 on:
   push:
     branches:
       - main
       - master
   workflow_dispatch:
+
 jobs:
   build:
     name: Build BitSwag
     runs-on: macos-15
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           submodules: recursive
+
       - name: Install dependencies
         run: |
           brew update
-          brew install ldid dpkg cmake ninja
+          brew install ldid dpkg ninja
+          python3 -m pip install --user cmake==3.31.6
+
+      - name: Configure tools
+        run: |
+          echo "$HOME/Library/Python/3.*/bin" >> "$GITHUB_PATH"
+          echo "PATH=$HOME/Library/Python/3.*/bin:$PATH" >> "$GITHUB_ENV"
+
+      - name: Verify tools
+        run: |
+          ldid -h || true
+          cmake --version
+          xcodebuild -version
+
       - name: Install Theos
         run: |
           git clone --recursive https://github.com/theos/theos.git "$HOME/theos"
           echo "THEOS=$HOME/theos" >> "$GITHUB_ENV"
+
       - name: Install iOS SDK
         run: |
-          mkdir -p "$HOME/theos/sdks"
-          git clone https://github.com/theos/sdks.git /tmp/theos-sdks
-          find /tmp/theos-sdks \
-            -maxdepth 1 \
-            -type d \
-            -name 'iPhoneOS*.sdk' \
-            -exec cp -R {} "$HOME/theos/sdks/" \;
+          mkdir -p "$THEOS/sdks"
+
+          if ! compgen -G "$THEOS/sdks/iPhoneOS*.sdk" > /dev/null; then
+            git clone https://github.com/theos/sdks.git /tmp/theos-sdks
+
+            find /tmp/theos-sdks \
+              -maxdepth 1 \
+              -type d \
+              -name 'iPhoneOS*.sdk' \
+              -exec cp -R {} "$THEOS/sdks/" \;
+          fi
+
+          ls -la "$THEOS/sdks"
+
+      - name: Download Dobby
+        run: |
+          git clone --depth 1 \
+            https://github.com/jmpews/Dobby.git \
+            /tmp/Dobby
+
       - name: Compile Dobby for iOS ARM64
         run: |
-          git clone --depth 1 https://github.com/jmpews/Dobby.git /tmp/Dobby
+          set -e
+
           mkdir -p "$THEOS/vendor/include"
           mkdir -p "$THEOS/vendor/lib"
+
           HEADER=$(find /tmp/Dobby -name dobby.h -type f | head -n 1)
+
           if [ -z "$HEADER" ]; then
             echo "ERREUR : dobby.h introuvable."
             exit 1
           fi
+
           cp "$HEADER" "$THEOS/vendor/include/dobby.h"
+
+          SDK=$(xcrun --sdk iphoneos --show-sdk-path)
+          CC=$(xcrun --sdk iphoneos -f clang)
+          CXX=$(xcrun --sdk iphoneos -f clang++)
+
           cmake -S /tmp/Dobby -B /tmp/Dobby/build-ios \
             -G Ninja \
             -DCMAKE_SYSTEM_NAME=iOS \
-            -DCMAKE_OSX_SYSROOT=iphoneos \
+            -DCMAKE_SYSTEM_PROCESSOR=arm64 \
+            -DCMAKE_OSX_SYSROOT="$SDK" \
             -DCMAKE_OSX_ARCHITECTURES=arm64 \
             -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_C_COMPILER="$CC" \
+            -DCMAKE_CXX_COMPILER="$CXX" \
             -DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY \
-            -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED=NO \
+            -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
             -DBUILD_SHARED_LIBS=OFF
-          cmake --build /tmp/Dobby/build-ios --config Release
+
+          cmake --build /tmp/Dobby/build-ios --config Release --parallel 2
+
           LIBRARY=$(find /tmp/Dobby/build-ios \
-            -name 'libdobby.a' -type f | head -n 1)
+            -name libdobby.a -type f | head -n 1)
+
           if [ -z "$LIBRARY" ]; then
-            echo "ERREUR : bibliothèque Dobby iOS introuvable."
+            echo "ERREUR : libdobby.a introuvable."
             find /tmp/Dobby/build-ios -type f
             exit 1
           fi
+
           cp "$LIBRARY" "$THEOS/vendor/lib/libdobby.a"
+
       - name: Verify Dobby
         run: |
+          set -e
+
           test -f "$THEOS/vendor/include/dobby.h"
           test -f "$THEOS/vendor/lib/libdobby.a"
+
           file "$THEOS/vendor/lib/libdobby.a"
-          lipo -info "$THEOS/vendor/lib/libdobby.a"
+          xcrun lipo -info "$THEOS/vendor/lib/libdobby.a"
+
       - name: Compile BitSwag
         run: |
           make clean || true
           make package FINALPACKAGE=1
+
       - name: Upload BitSwag package
         uses: actions/upload-artifact@v4
         with:
