@@ -1,4 +1,4 @@
-name: Compile BitSwag
+name: Build BitSwag
 on:
   push:
     branches:
@@ -43,18 +43,27 @@ jobs:
           ldid -h || true
       - name: Install Theos
         run: |
-          git clone --recursive https://github.com/theos/theos.git "$HOME/theos"
+          if [ ! -d "$HOME/theos" ]; then
+            git clone --recursive https://github.com/theos/theos.git "$HOME/theos"
+          fi
           echo "THEOS=$HOME/theos" >> "$GITHUB_ENV"
       - name: Install iOS SDK
         run: |
-          git clone https://github.com/theos/sdks.git "$HOME/theos/sdks"
+          mkdir -p "$HOME/theos/sdks"
+          if ! compgen -G "$HOME/theos/sdks/iPhoneOS*.sdk" > /dev/null; then
+            git clone https://github.com/theos/sdks.git /tmp/theos-sdks
+            find /tmp/theos-sdks -maxdepth 1 -type d -name 'iPhoneOS*.sdk' \
+              -exec cp -R {} "$HOME/theos/sdks/" \;
+          fi
+          echo "SDK contents:"
+          ls -la "$HOME/theos/sdks"
       - name: Check Dobby files
         run: |
-          if [ ! -f "$HOME/theos/vendor/include/dobby.h" ]; then
+          if [ ! -f "$THEOS/vendor/include/dobby.h" ]; then
             echo "ERREUR : dobby.h est absent."
             exit 1
           fi
-          if [ ! -f "$HOME/theos/vendor/lib/libdobby.a" ]; then
+          if [ ! -f "$THEOS/vendor/lib/libdobby.a" ]; then
             echo "ERREUR : libdobby.a est absent."
             exit 1
           fi
