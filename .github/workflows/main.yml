@@ -1,117 +1,70 @@
-name: Build BitSwag
-
+name: Compile BitSwag
 on:
   push:
     branches:
       - main
+      - master
   workflow_dispatch:
-
-permissions:
-  contents: read
-
-concurrency:
-  group: bitswag-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
   build:
-    name: Compile BitSwag
+    name: Build BitSwag
     runs-on: ubuntu-24.04
-    timeout-minutes: 40
-
     steps:
-      # Récupération du projet
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      # Dépendances Linux
+        with:
+          submodules: recursive
       - name: Install build dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            build-essential \
-            clang \
             git \
-            perl \
-            make \
-            python3 \
             curl \
-            ca-certificates \
-            ldid \
-            libzstd-dev \
-            libtinfo6 \
-            libxml2-dev \
+            wget \
+            make \
+            clang \
+            build-essential \
+            perl \
+            python3 \
+            libplist-dev \
             libssl-dev \
-            cmake \
-            unzip \
-            xz-utils \
+            lzma-dev \
             dpkg-dev \
-            fakeroot
-
-      # Installation de Theos
+            fakeroot \
+            xz-utils \
+            unzip
+      - name: Install ldid from Procursus
+        uses: MOZGIII/install-ldid-action@v1
+        with:
+          tag: v2.1.5-procursus7
+      - name: Verify ldid
+        run: |
+          command -v ldid
+          ldid -h || true
       - name: Install Theos
         run: |
-          git clone --depth 1 --recursive \
-            https://github.com/theos/theos.git \
-            "$HOME/theos"
-
+          git clone --recursive https://github.com/theos/theos.git "$HOME/theos"
           echo "THEOS=$HOME/theos" >> "$GITHUB_ENV"
-          echo "$HOME/theos/bin" >> "$GITHUB_PATH"
-
-      # Installation du SDK iOS
       - name: Install iOS SDK
         run: |
-          git clone --depth 1 \
-            https://github.com/theos/sdks.git \
-            "$RUNNER_TEMP/theos-sdks"
-
-          mkdir -p "$HOME/theos/sdks"
-
-          SDK=$(find "$RUNNER_TEMP/theos-sdks" \
-            -maxdepth 1 \
-            -type d \
-            -name 'iPhoneOS*.sdk' \
-            | sort -V \
-            | tail -n 1)
-
-          if [ -z "$SDK" ]; then
-            echo "::error::iOS SDK not found"
-            exit 1
-          fi
-
-          cp -R "$SDK" "$HOME/theos/sdks/"
-
-      # Vérification Dobby
-      - name: Check Dobby
+          git clone https://github.com/theos/sdks.git "$HOME/theos/sdks"
+      - name: Check Dobby files
         run: |
-          if [ ! -f "$THEOS/vendor/include/dobby.h" ]; then
-            echo "::error::dobby.h is missing"
+          if [ ! -f "$HOME/theos/vendor/include/dobby.h" ]; then
+            echo "ERREUR : dobby.h est absent."
             exit 1
           fi
-
-          if [ ! -f "$THEOS/vendor/lib/libdobby.a" ]; then
-            echo "::error::libdobby.a is missing"
+          if [ ! -f "$HOME/theos/vendor/lib/libdobby.a" ]; then
+            echo "ERREUR : libdobby.a est absent."
             exit 1
           fi
-
-          echo "Dobby files found"
-
-      # Compilation
-      - name: Clean project
-        run: |
-          make clean
-
       - name: Compile BitSwag
         run: |
-          make package \
-            FINALPACKAGE=1 \
-            THEOS_PACKAGE_SCHEME=rootless
-
-      # Publication du paquet
+          make clean || true
+          make package FINALPACKAGE=1
       - name: Upload BitSwag package
         uses: actions/upload-artifact@v4
         with:
           name: BitSwag-deb
           path: packages/*.deb
           if-no-files-found: error
-          retention-days: 14
